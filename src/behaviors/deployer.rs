@@ -52,13 +52,13 @@ impl Behavior<()> for Deployer {
         let factory = deploy_factory(&client).await?;
 
         let le_param = self.liquid_exchange_parameters.clone();
+
         let liquid_exchange = deploy_liquid_exchange(
             &client,
-            &le_param.asset_token_parameters,
-            &le_param.quote_token_parameters,
-            le_param.initial_price,
+            le_param
         )
         .await?;
+
         info!("Factory deployed at {:?}", factory.address());
         info!(
             "Liquid exchange deployed at {:?}",
@@ -92,19 +92,17 @@ pub async fn deploy_factory(
 
 pub async fn deploy_liquid_exchange(
     client: &Arc<ArbiterMiddleware>,
-    arbx_param: &TokenData,
-    arby_param: &TokenData,
-    initial_price: f64,
+    le_params: LiquidExchangeParameters,
 ) -> Result<LiquidExchange<ArbiterMiddleware>> {
-    let initial_liquid_exchange_price = U256::from((initial_price * 10f64.powf(18.0)) as u64);
+    let initial_liquid_exchange_price = U256::from((le_params.initial_price * 10f64.powf(18.0)) as u64);
 
     // Deploy an instance of the `ArbiterToken` contract using our predefined constants.
     let arbx = ArbiterToken::deploy(
         client.clone(),
         (
-            arbx_param.name.clone(),
-            arbx_param.symbol.clone(),
-            arbx_param.decimals,
+            le_params.asset_token_parameters.name.clone(),
+            le_params.asset_token_parameters.symbol.clone(),
+            le_params.asset_token_parameters.decimals,
         ),
     )?
     .send()
@@ -115,9 +113,9 @@ pub async fn deploy_liquid_exchange(
     let arby = ArbiterToken::deploy(
         client.clone(),
         (
-            arby_param.name.clone(),
-            arby_param.symbol.clone(),
-            arby_param.decimals,
+            le_params.quote_token_parameters.name.clone(),
+            le_params.quote_token_parameters.symbol.clone(),
+            le_params.quote_token_parameters.decimals,
         ),
     )?
     .send()
